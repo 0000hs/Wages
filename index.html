@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weekly Earnings Tracker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #000;
+            color: #fff;
+            height: 100vh;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .floating-numbers {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .floating-number {
+            position: absolute;
+            color: rgba(255, 255, 255, 0.05);
+            font-size: clamp(1rem, 2vw, 2.5rem);
+            font-weight: bold;
+            animation: float 10s infinite ease-in-out;
+            opacity: 0;
+        }
+
+        @keyframes float {
+            0% { transform: translateY(0) scale(1) rotate(0deg); opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { transform: translateY(-100vh) scale(1.5) rotate(360deg); opacity: 0; }
+        }
+
+        .main-container {
+            position: relative;
+            z-index: 2;
+            width: 90%;
+            max-width: 450px;
+            padding: 2.5rem;
+            text-align: center;
+        }
+
+        .title {
+            font-size: 2rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            color: #fff;
+        }
+
+        .info-block {
+            background: rgba(30, 30, 30, 0.8);
+            backdrop-filter: blur(8px);
+            margin: 1rem 0;
+            padding: 1.25rem;
+            border-radius: 12px;
+            font-size: 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .label {
+            color: #aaa;
+            font-size: 0.9rem;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .value {
+            font-size: 1.75rem;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        .amount-made-value {
+            color: #4CAF50;
+        }
+
+        .amount-left-value {
+            color: #FF6B6B;
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 1.5rem;
+        }
+        
+        .button {
+            background: #2b2b2b;
+            color: #fff;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            margin: 0.5rem;
+            transition: background 0.3s, transform 0.1s;
+        }
+
+        .button:hover {
+            background: #3a3a3a;
+        }
+
+        .button:active {
+            transform: scale(0.98);
+        }
+
+        .popup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            animation: fadeIn 0.3s;
+        }
+        
+        .popup-content {
+            background: #1e1e1e;
+            padding: 2.5rem;
+            border-radius: 15px;
+            text-align: center;
+            min-width: 320px;
+            max-width: 90%;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            animation: slideIn 0.3s;
+        }
+
+        .popup-content h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .popup-content p {
+            color: #aaa;
+            margin-bottom: 1.5rem;
+        }
+
+        .input-field {
+            background: #333;
+            border: none;
+            padding: 0.8rem;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 1rem;
+            text-align: center;
+            width: 100%;
+            max-width: 250px;
+            margin-bottom: 1rem;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="floating-numbers" id="floatingNumbers"></div>
+    
+    <div class="main-container">
+        <h1 class="title">Weekly Earnings Tracker</h1>
+
+        <div class="info-block">
+            <span class="label">Time Left</span>
+            <div class="value" id="timeLeft">7 Days 0 Hours</div>
+        </div>
+        
+        <div class="info-block">
+            <span class="label">Amount Made</span>
+            <div class="value amount-made-value" id="amountMade">0</div>
+        </div>
+        
+        <div class="info-block">
+            <span class="label">Amount Left</span>
+            <div class="value amount-left-value" id="amountLeft">0</div>
+        </div>
+        
+        <div class="button-container">
+            <button class="button" onclick="showGoalPopup()">Change Goal</button>
+            <button class="button" onclick="showUpdatePopup()">Update Earnings</button>
+        </div>
+    </div>
+
+    <!-- Update Earnings Popup -->
+    <div class="popup" id="updatePopup">
+        <div class="popup-content">
+            <h3>Update Your Earnings</h3>
+            <p>How much did you make?</p>
+            <input type="number" class="input-field" id="earningsInput" placeholder="Enter amount">
+            <br>
+            <button class="button" onclick="updateEarnings()">Set</button>
+            <button class="button" onclick="closePopup('updatePopup')">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Goal Setting Popup -->
+    <div class="popup" id="goalPopup">
+        <div class="popup-content">
+            <h3>Set Weekly Goal</h3>
+            <p>Enter your goal for this week:</p>
+            <input type="number" class="input-field" id="goalInput" placeholder="Enter goal">
+            <br>
+            <button class="button" onclick="setGoal()">Set Goal</button>
+            <button class="button" onclick="closePopup('goalPopup')">Cancel</button>
+            <div id="goalStatus" style="margin-top: 15px; color: #FF6B6B; font-size: 0.9rem;"></div>
+        </div>
+    </div>
+
+    <script>
+        // PWA Manifest and Service Worker content embedded here
+        const manifestContent = {
+            "name": "Weekly Tracker",
+            "short_name": "Weekly Tracker",
+            "start_url": ".",
+            "display": "standalone",
+            "background_color": "#000000",
+            "theme_color": "#000000",
+            "icons": [
+                {
+                    "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMzIiIGZpbGw9IiM0Q0FGNTAiLz4KPHRleHQgeD0iMzIiIHk9IjQwIiBmb250LXNpemU9IjI0IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjRkZGRkZGIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4kPC90ZXh0Pgo8L3N2Zz4=",
+                    "sizes": "64x64",
+                    "type": "image/svg+xml"
+                },
+                {
+                    "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjU2IiBoZWlnaHQ9IjI1NiIgdmlld0JveD0iMCAwIDI1NiAyNTYiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyNTYiIGhlaWdodD0iMjU2IiByeD0iMTI4IiBmaWxsPSIjNTVCMzY1Ii8+Cjx0ZXh0IHg9IjEyOCIgeT0iMTYwIiBmb250LXNpemU9Ijg4IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjRkZGRkZGIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiPiQ8L3RleHQ+Cjwvc3ZnPg==",
+                    "sizes": "256x256",
+                    "type": "image/svg+xml"
+                }
+            ]
+        };
+
+        const serviceWorkerScript = `
+            const CACHE_NAME = 'earnings-tracker-cache-v1';
+            const urlsToCache = [
+                '/',
+                '/index.html'
+            ];
+
+            self.addEventListener('install', event => {
+                event.waitUntil(
+                    caches.open(CACHE_NAME)
+                        .then(cache => {
+                            return cache.addAll(urlsToCache);
+                        })
+                );
+            });
+
+            self.addEventListener('fetch', event => {
+                event.respondWith(
+                    caches.match(event.request)
+                        .then(response => {
+                            if (response) {
+                                return response;
+                            }
+                            return fetch(event.request);
+                        })
+                );
+            });
+        `;
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                const serviceWorkerBlob = new Blob([serviceWorkerScript], { type: 'application/javascript' });
+                const serviceWorkerUrl = URL.createObjectURL(serviceWorkerBlob);
+
+                const manifestBlob = new Blob([JSON.stringify(manifestContent)], { type: 'application/json' });
+                const manifestUrl = URL.createObjectURL(manifestBlob);
+
+                const manifestLink = document.createElement('link');
+                manifestLink.rel = 'manifest';
+                manifestLink.href = manifestUrl;
+                document.head.appendChild(manifestLink);
+
+                navigator.serviceWorker.register(serviceWorkerUrl)
+                    .then(registration => {
+                        console.log('Service Worker registered with scope:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('Service Worker registration failed:', error);
+                    });
+            });
+        }
+        
+        let currentGoal = 0;
+        let currentEarnings = 0;
+        let weekStartTime = null;
+        let lastUpdate = null;
+        let floatingNumbersInterval;
+
+        function initializeApp() {
+            const saved = JSON.parse(localStorage.getItem('earningsTracker') || '{}');
+            currentGoal = saved.currentGoal || 0;
+            currentEarnings = saved.currentEarnings || 0;
+            weekStartTime = saved.weekStartTime ? new Date(saved.weekStartTime) : getWeekStart();
+            lastUpdate = saved.lastUpdate ? new Date(saved.lastUpdate) : new Date();
+
+            if (isNewWeek()) {
+                startNewWeek();
+            }
+
+            updateDisplay();
+            createFloatingNumbers();
+            setInterval(updateDisplay, 1000);
+            setInterval(checkForNotification, 60000);
+        }
+
+        function getWeekStart() {
+            const now = new Date();
+            const day = now.getDay();
+            const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+            const monday = new Date(now.setDate(diff));
+            monday.setHours(0, 0, 0, 0);
+            return monday;
+        }
+
+        function isNewWeek() {
+            const currentWeekStart = getWeekStart();
+            return !weekStartTime || weekStartTime.getTime() !== currentWeekStart.getTime();
+        }
+
+        function startNewWeek() {
+            weekStartTime = getWeekStart();
+            currentEarnings = 0;
+            saveData();
+        }
+
+        function updateDisplay() {
+            const now = new Date();
+            const weekEnd = new Date(weekStartTime);
+            weekEnd.setDate(weekEnd.getDate() + 7);
+            
+            const timeLeft = weekEnd.getTime() - now.getTime();
+            const days = Math.max(0, Math.floor(timeLeft / (1000 * 60 * 60 * 24)));
+            const hours = Math.max(0, Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)));
+            
+            const timeString = `${days} Days ${hours} Hours`;
+            
+            document.getElementById('timeLeft').textContent = timeString;
+            document.getElementById('amountMade').textContent = currentEarnings;
+            document.getElementById('amountLeft').textContent = Math.max(0, currentGoal - currentEarnings);
+        }
+
+        function createFloatingNumbers() {
+            const container = document.getElementById('floatingNumbers');
+            container.innerHTML = '';
+            
+            if (floatingNumbersInterval) {
+                clearInterval(floatingNumbersInterval);
+            }
+
+            if (currentGoal === 0) return;
+            
+            const goalText = currentGoal >= 1000 ? `${Math.floor(currentGoal/1000)}k` : currentGoal.toString();
+            
+            const screenArea = window.innerWidth * window.innerHeight;
+            const baseArea = 1920 * 1080;
+            const numElements = Math.floor((screenArea / baseArea) * 25);
+            const finalCount = Math.min(40, Math.max(15, numElements));
+            
+            for (let i = 0; i < finalCount; i++) {
+                const element = document.createElement('div');
+                element.className = 'floating-number';
+                element.textContent = goalText;
+                element.style.left = Math.random() * 100 + '%';
+                element.style.top = Math.random() * 100 + '%';
+                element.style.animationDelay = Math.random() * 10 + 's';
+                element.style.animationDuration = (10 + Math.random() * 5) + 's';
+                container.appendChild(element);
+            }
+        }
+
+        function showGoalPopup() {
+            const statusElement = document.getElementById('goalStatus');
+            statusElement.textContent = '';
+            document.getElementById('goalInput').value = currentGoal;
+            document.getElementById('goalPopup').style.display = 'flex';
+        }
+
+        function setGoal() {
+            const newGoal = parseInt(document.getElementById('goalInput').value);
+            if (newGoal && newGoal > 0) {
+                currentGoal = newGoal;
+                saveData();
+                updateDisplay();
+                createFloatingNumbers();
+                closePopup('goalPopup');
+            }
+        }
+
+        function showUpdatePopup() {
+            document.getElementById('updatePopup').style.display = 'flex';
+        }
+
+        function updateEarnings() {
+            const amount = parseInt(document.getElementById('earningsInput').value);
+            if (amount && amount >= 0) {
+                currentEarnings += amount;
+                lastUpdate = new Date();
+                saveData();
+                updateDisplay();
+                closePopup('updatePopup');
+                document.getElementById('earningsInput').value = '';
+            }
+        }
+
+        function closePopup(popupId) {
+            document.getElementById(popupId).style.display = 'none';
+        }
+
+        function checkForNotification() {
+            const now = new Date();
+            const sixHoursAgo = new Date(now.getTime() - (6 * 60 * 60 * 1000));
+            
+            if (lastUpdate < sixHoursAgo) {
+                showNotification();
+            }
+        }
+
+        function showNotification() {
+            if (Notification.permission === 'granted') {
+                const notification = new Notification('Time to Update Earnings!', {
+                    body: 'It\'s been a while. Update your progress towards your goal!',
+                    icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMzIiIGZpbGw9IiM0Q0FGNTAiLz4KPHRleHQgeD0iMzIiIHk9IjQwIiBmb250LXNpemU9IjI0IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjRkZGRkZGIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4kPC90ZXh0Pgo8L3N2Zz4='
+                });
+                
+                notification.onclick = () => {
+                    window.focus();
+                    showUpdatePopup();
+                    notification.close();
+                };
+            }
+        }
+
+        function saveData() {
+            const data = {
+                currentGoal,
+                currentEarnings,
+                weekStartTime: weekStartTime.toISOString(),
+                lastUpdate: lastUpdate ? lastUpdate.toISOString() : new Date().toISOString()
+            };
+            localStorage.setItem('earningsTracker', JSON.stringify(data));
+        }
+
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+
+        initializeApp();
+
+        window.addEventListener('resize', () => {
+            clearTimeout(window.resizeTimer);
+            window.resizeTimer = setTimeout(createFloatingNumbers, 250);
+        });
+    </script>
+</body>
+</html>
