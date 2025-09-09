@@ -13,7 +13,8 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: #000;
+            background: #000 url('./spider.jpg') no-repeat center center fixed;
+            background-size: cover;
             color: #fff;
             height: 100vh;
             overflow: hidden;
@@ -21,6 +22,17 @@
             display: flex;
             justify-content: center;
             align-items: center;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 0;
         }
 
         .floating-numbers {
@@ -253,7 +265,6 @@
         </div>
     </div>
 
-    <!-- Update Earnings Popup -->
     <div class="popup" id="updatePopup">
         <div class="popup-content">
             <h3>Update Your Earnings</h3>
@@ -265,7 +276,6 @@
         </div>
     </div>
 
-    <!-- Goal Setting Popup -->
     <div class="popup" id="goalPopup">
         <div class="popup-content">
             <h3>Set Weekly Goal</h3>
@@ -278,7 +288,6 @@
         </div>
     </div>
 
-    <!-- Custom Date Popup -->
     <div class="popup" id="datePopup">
         <div class="popup-content">
             <h3>Set Custom Goal Period</h3>
