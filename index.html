@@ -22,18 +22,10 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            transition: background-image 0.5s ease-in-out;
         }
-
-        body::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.6);
-            z-index: 0;
-        }
+        
+        /* The previous "black layer" code has been removed from here. */
 
         .floating-numbers {
             position: absolute;
@@ -233,13 +225,68 @@
         input[type="date"]::-webkit-calendar-picker-indicator {
             filter: invert(1);
         }
+
+        /* Styles for the background toggle icon */
+        .background-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            cursor: pointer;
+            z-index: 100;
+            font-size: 2rem;
+            color: rgba(255, 255, 255, 0.8);
+            transition: color 0.3s;
+        }
+        .background-toggle:hover {
+            color: #fff;
+        }
+
+        /* NEW: Styles for the wave animation */
+        @keyframes wave-pulse {
+            0% {
+                transform: scale(0);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(1.5);
+                opacity: 0;
+            }
+        }
+
+        .wave {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 2rem;
+            height: 2rem;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            pointer-events: none;
+            opacity: 0;
+            z-index: 99;
+        }
+
+        .wave.active {
+            animation: wave-pulse 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
     </style>
 </head>
 <body>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js" crossorigin="anonymous"></script>
+
+    <div id="wave-element" class="wave"></div>
+
+    <div class="background-toggle" onclick="changeBackground()">
+        <i class="fas fa-lightbulb"></i>
+    </div>
+
     <div class="floating-numbers" id="floatingNumbers"></div>
     
     <div class="main-container">
-        <h1 class="title">Weekly Earnings Tracker</h1>
+        <div class="info-block" id="dailyGoalBlock" style="display: none;">
+            <span class="label">Today's Goal</span>
+            <div class="value" id="dailyGoalValue">0</div>
+        </div>
 
         <div class="info-block">
             <span class="label">Time Left</span>
@@ -322,7 +369,7 @@
                     "type": "image/svg+xml"
                 },
                 {
-                    "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjU2IiBoZWlnaHQ9IjI1NiIgdmlld0JveD0iMCAwIDI1NiAyNTYiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyNTYiIGhlaWdodD0iMjU2IiByeD0iMTI4IiBmaWxsPSIjNTVCMzY1Ii8+Cjx0ZXh0IHg9IjEyOCIgeT0iMTYwIiBmb250LXNpemU9Ijg4IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjRkZGRkZGIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiPiQ8L3RleHQ+Cjwvc3ZnPg==",
+                    "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjU2IiBoZWlnaHQ9IjI1NiIgdmlld0JveD0iMCAwIDI1NiAyNTYiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIyNTYiIGhlaWdodD0iMjU2IiByeD0iMTI4IiBmaWxsPSIjNTVCMzY1Ii8+Cjx0ZXh0IHg9IjEyOCIgeT0iMTYwIiBmb250LXNpemU9Ijg4IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjRkZGRkZGIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiPiQ8L3N2Zz4==",
                     "sizes": "256x256",
                     "type": "image/svg+xml"
                 }
@@ -388,6 +435,38 @@
         let lastUpdate = null;
         let floatingNumbersInterval;
 
+        // NEW: Array of background images. Add more URLs here.
+        const backgrounds = [
+            './spider.jpg',
+            './marwal-1.jpg',
+            './marwal-2.jpg',
+            './marwal-3.jpg',
+            './pic.jpg',
+            './pic2.jpg',
+            './pic3.jpg',
+            './pic4.jpg',
+            './pic5.jpg'
+        ];
+        let currentBackgroundIndex = 0;
+
+        // NEW: Function to change the background and save the state
+        function changeBackground() {
+            // Trigger the wave animation
+            const wave = document.getElementById('wave-element');
+            wave.classList.remove('active');
+            void wave.offsetWidth; // Force reflow
+            wave.classList.add('active');
+
+            // Wait for the animation to start before changing the background
+            setTimeout(() => {
+                currentBackgroundIndex = (currentBackgroundIndex + 1) % backgrounds.length;
+                const newBackground = backgrounds[currentBackgroundIndex];
+                document.body.style.backgroundImage = `url('${newBackground}')`;
+                localStorage.setItem('savedBackgroundIndex', currentBackgroundIndex);
+            }, 250); // Delay matches the animation duration
+        }
+
+        // Modified initializeApp to load the saved background
         function initializeApp() {
             // Load saved data
             const saved = JSON.parse(localStorage.getItem('earningsTracker') || '{}');
@@ -396,6 +475,13 @@
             startDate = saved.startDate ? new Date(saved.startDate) : new Date();
             endDate = saved.endDate ? new Date(saved.endDate) : new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
             lastUpdate = saved.lastUpdate ? new Date(saved.lastUpdate) : new Date();
+
+            // NEW: Load saved background index, or default to 0
+            const savedBackgroundIndex = localStorage.getItem('savedBackgroundIndex');
+            if (savedBackgroundIndex !== null) {
+                currentBackgroundIndex = parseInt(savedBackgroundIndex, 10);
+            }
+            document.body.style.backgroundImage = `url('${backgrounds[currentBackgroundIndex]}')`;
 
             updateDisplay();
             createFloatingNumbers();
@@ -414,7 +500,17 @@
             
             document.getElementById('timeLeft').textContent = timeString;
             document.getElementById('amountMade').textContent = currentEarnings;
-            document.getElementById('amountLeft').textContent = Math.max(0, currentGoal - currentEarnings);
+            
+            const amountLeft = Math.max(0, currentGoal - currentEarnings);
+            document.getElementById('amountLeft').textContent = amountLeft;
+
+            // Calculate and display today's goal
+            const daysRemaining = Math.max(1, Math.ceil(timeLeft / (1000 * 60 * 60 * 24)));
+            const dailyGoal = daysRemaining > 0 ? Math.round(amountLeft / daysRemaining) : 0;
+            document.getElementById('dailyGoalValue').textContent = dailyGoal;
+            
+            // Show the daily goal block only if a goal is set
+            document.getElementById('dailyGoalBlock').style.display = currentGoal > 0 ? 'flex' : 'none';
         }
 
         function createFloatingNumbers() {
