@@ -73,6 +73,16 @@
             border-radius: 12px;
             font-size: 1rem;
             border: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .time-info-content {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         .label {
@@ -95,6 +105,22 @@
 
         .amount-left-value {
             color: #FF6B6B;
+        }
+
+        .change-btn {
+            background: rgba(30, 30, 30, 0);
+            color: #aaa;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+            transition: color 0.3s;
+        }
+
+        .change-btn:hover {
+            color: #fff;
         }
 
         .button-container {
@@ -182,6 +208,19 @@
             from { transform: translateY(20px); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
         }
+
+        /* Custom styling for date inputs to match theme */
+        input[type="date"] {
+            background: #333;
+            color: #fff;
+            border: 1px solid #555;
+            padding: 0.8rem;
+            border-radius: 8px;
+            font-family: inherit;
+        }
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+        }
     </style>
 </head>
 <body>
@@ -192,7 +231,10 @@
 
         <div class="info-block">
             <span class="label">Time Left</span>
-            <div class="value" id="timeLeft">7 Days 0 Hours</div>
+            <div class="time-info-content">
+                <div class="value" id="timeLeft"></div>
+                <button class="change-btn" onclick="showDatePopup()">Change</button>
+            </div>
         </div>
         
         <div class="info-block">
@@ -227,12 +269,31 @@
     <div class="popup" id="goalPopup">
         <div class="popup-content">
             <h3>Set Weekly Goal</h3>
-            <p>Enter your goal for this week:</p>
+            <p>Enter your goal for this period:</p>
             <input type="number" class="input-field" id="goalInput" placeholder="Enter goal">
             <br>
             <button class="button" onclick="setGoal()">Set Goal</button>
             <button class="button" onclick="closePopup('goalPopup')">Cancel</button>
             <div id="goalStatus" style="margin-top: 15px; color: #FF6B6B; font-size: 0.9rem;"></div>
+        </div>
+    </div>
+
+    <!-- Custom Date Popup -->
+    <div class="popup" id="datePopup">
+        <div class="popup-content">
+            <h3>Set Custom Goal Period</h3>
+            <div class="input-group">
+                <p>Start Date:</p>
+                <input type="date" id="startDateInput" class="input-field">
+            </div>
+            <div class="input-group">
+                <p>End Date:</p>
+                <input type="date" id="endDateInput" class="input-field">
+            </div>
+            <br>
+            <button class="button" onclick="setCustomDates()">Set Period</button>
+            <button class="button" onclick="closePopup('datePopup')">Cancel</button>
+            <div id="dateStatus" style="margin-top: 15px; color: #FF6B6B; font-size: 0.9rem;"></div>
         </div>
     </div>
 
@@ -313,20 +374,19 @@
         
         let currentGoal = 0;
         let currentEarnings = 0;
-        let weekStartTime = null;
+        let startDate = null;
+        let endDate = null;
         let lastUpdate = null;
         let floatingNumbersInterval;
 
         function initializeApp() {
+            // Load saved data
             const saved = JSON.parse(localStorage.getItem('earningsTracker') || '{}');
             currentGoal = saved.currentGoal || 0;
             currentEarnings = saved.currentEarnings || 0;
-            weekStartTime = saved.weekStartTime ? new Date(saved.weekStartTime) : getWeekStart();
+            startDate = saved.startDate ? new Date(saved.startDate) : new Date();
+            endDate = saved.endDate ? new Date(saved.endDate) : new Date(new Date().getTime() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
             lastUpdate = saved.lastUpdate ? new Date(saved.lastUpdate) : new Date();
-
-            if (isNewWeek()) {
-                startNewWeek();
-            }
 
             updateDisplay();
             createFloatingNumbers();
@@ -334,32 +394,10 @@
             setInterval(checkForNotification, 60000);
         }
 
-        function getWeekStart() {
-            const now = new Date();
-            const day = now.getDay();
-            const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-            const monday = new Date(now.setDate(diff));
-            monday.setHours(0, 0, 0, 0);
-            return monday;
-        }
-
-        function isNewWeek() {
-            const currentWeekStart = getWeekStart();
-            return !weekStartTime || weekStartTime.getTime() !== currentWeekStart.getTime();
-        }
-
-        function startNewWeek() {
-            weekStartTime = getWeekStart();
-            currentEarnings = 0;
-            saveData();
-        }
-
         function updateDisplay() {
             const now = new Date();
-            const weekEnd = new Date(weekStartTime);
-            weekEnd.setDate(weekEnd.getDate() + 7);
+            const timeLeft = endDate.getTime() - now.getTime();
             
-            const timeLeft = weekEnd.getTime() - now.getTime();
             const days = Math.max(0, Math.floor(timeLeft / (1000 * 60 * 60 * 24)));
             const hours = Math.max(0, Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)));
             
@@ -414,6 +452,9 @@
                 updateDisplay();
                 createFloatingNumbers();
                 closePopup('goalPopup');
+            } else {
+                const statusElement = document.getElementById('goalStatus');
+                statusElement.textContent = 'Please enter a valid goal amount greater than 0.';
             }
         }
 
@@ -430,6 +471,9 @@
                 updateDisplay();
                 closePopup('updatePopup');
                 document.getElementById('earningsInput').value = '';
+            } else {
+                 const statusElement = document.getElementById('goalStatus');
+                 statusElement.textContent = 'Please enter a valid amount.';
             }
         }
 
@@ -449,7 +493,7 @@
         function showNotification() {
             if (Notification.permission === 'granted') {
                 const notification = new Notification('Time to Update Earnings!', {
-                    body: 'It\'s been a while. Update your progress towards your goal!',
+                    body: "It's been a while. Update your progress towards your goal!",
                     icon: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMzIiIGZpbGw9IiM0Q0FGNTAiLz4KPHRleHQgeD0iMzIiIHk9IjQwIiBmb250LXNpemU9IjI0IiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjRkZGRkZGIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj4kPC90ZXh0Pgo8L3N2Zz4='
                 });
                 
@@ -465,10 +509,57 @@
             const data = {
                 currentGoal,
                 currentEarnings,
-                weekStartTime: weekStartTime.toISOString(),
+                startDate: startDate.toISOString(),
+                endDate: endDate.toISOString(),
                 lastUpdate: lastUpdate ? lastUpdate.toISOString() : new Date().toISOString()
             };
             localStorage.setItem('earningsTracker', JSON.stringify(data));
+        }
+
+        function showDatePopup() {
+            // Set default values to current saved dates
+            document.getElementById('startDateInput').valueAsDate = startDate;
+            document.getElementById('endDateInput').valueAsDate = endDate;
+            
+            // Set the minimum date for the end date to today
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            document.getElementById('endDateInput').min = today.toISOString().split('T')[0];
+            
+            document.getElementById('dateStatus').textContent = '';
+            document.getElementById('datePopup').style.display = 'flex';
+        }
+
+        function setCustomDates() {
+            const startInput = document.getElementById('startDateInput').valueAsDate;
+            const endInput = document.getElementById('endDateInput').valueAsDate;
+
+            if (!startInput || !endInput) {
+                document.getElementById('dateStatus').textContent = 'Please select both a start and end date.';
+                return;
+            }
+
+            const newStartDate = new Date(startInput.setHours(0, 0, 0, 0));
+            const newEndDate = new Date(endInput.setHours(23, 59, 59, 999));
+            const now = new Date();
+            
+            if (newEndDate.getTime() < now.getTime()) {
+                document.getElementById('dateStatus').textContent = 'End date cannot be a past date.';
+                return;
+            }
+
+            if (newEndDate.getTime() < newStartDate.getTime()) {
+                document.getElementById('dateStatus').textContent = 'End date cannot be before the start date.';
+                return;
+            }
+
+            startDate = newStartDate;
+            endDate = newEndDate;
+            currentEarnings = 0; // Reset earnings for the new period
+            lastUpdate = new Date(); // Reset last update time
+            saveData();
+            updateDisplay();
+            closePopup('datePopup');
         }
 
         if ('Notification' in window && Notification.permission === 'default') {
